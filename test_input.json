@@ -79,7 +79,7 @@
       },
       "11": {
         "inputs": {
-          "prompt": "Relight Figure 1 using the brightness map from Figure 2 (light source from the above)",
+          "prompt": "Relight Figure 1 using the brightness map from Figure 2 (light source from the front)",
           "clip": [
             "96",
             0
@@ -120,7 +120,7 @@
       },
       "14": {
         "inputs": {
-          "seed": 493721145485787,
+          "seed": 452037337342133,
           "steps": 8,
           "cfg": 1,
           "sampler_name": "euler",
@@ -184,6 +184,7 @@
         "inputs": {
           "upscale_method": "lanczos",
           "megapixels": 1,
+          "resolution_steps": 1,
           "image": [
             "31",
             0
@@ -198,6 +199,7 @@
         "inputs": {
           "upscale_method": "lanczos",
           "megapixels": 1,
+          "resolution_steps": 1,
           "image": [
             "7",
             0
@@ -245,7 +247,7 @@
       },
       "103": {
         "inputs": {
-          "seed": 1013582120,
+          "seed": 904322857,
           "resolution": [
             "109",
             0
@@ -275,7 +277,7 @@
         },
         "class_type": "SeedVR2VideoUpscaler",
         "_meta": {
-          "title": "SeedVR2 Video Upscaler (v2.5.14)"
+          "title": "SeedVR2 Video Upscaler (v2.5.24)"
         }
       },
       "104": {

@@ -233,6 +233,7 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
             "inputs": {
                 "upscale_method": "lanczos",
                 "megapixels": 1,
+                "resolution_steps": 1,
                 "image": ["31", 0]
             },
             "class_type": "ImageScaleToTotalPixels",
@@ -242,6 +243,7 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
             "inputs": {
                 "upscale_method": "lanczos",
                 "megapixels": 1,
+                "resolution_steps": 1,
                 "image": ["7", 0]
             },
             "class_type": "ImageScaleToTotalPixels",
@@ -292,7 +294,7 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
                 "vae": ["104", 0]
             },
             "class_type": "SeedVR2VideoUpscaler",
-            "_meta": {"title": "SeedVR2 Video Upscaler (v2.5.14)"}
+            "_meta": {"title": "SeedVR2 Video Upscaler (v2.5.24)"}
         },
         "104": {
             "inputs": {
