@@ -394,8 +394,8 @@ def validate_input(job_input):
                 return None, "'reference_image' must be a base64 string or URL"
             
             images = [
-                {"name": "main_image", "image": main_image},
-                {"name": "reference_image", "image": reference_image}
+                {"name": "reference_image", "image": main_image},
+                {"name": "main_image", "image": reference_image}
             ]
         else:
             # Legacy format: array of images
@@ -415,14 +415,14 @@ def validate_input(job_input):
                     if isinstance(image, str):
                         # Simple format: base64 strings or URLs
                         # Auto-assign names
-                        name = "main_image" if idx == 0 else "reference_image"
+                        name = "reference_image" if idx == 0 else "main_image"
                         normalized_images.append({"name": name, "image": image})
                     elif isinstance(image, dict):
                         # Old format: objects with name and image
                         if "name" not in image or "image" not in image:
                             return None, f"Image {idx} must have 'name' and 'image' keys or be a base64 string/URL"
                         # Override names to ensure correct workflow mapping
-                        name = "main_image" if idx == 0 else "reference_image"
+                        name = "reference_image" if idx == 0 else "main_image"
                         normalized_images.append({"name": name, "image": image["image"]})
                     else:
                         return None, f"Image {idx} must be a string (base64/URL) or object with 'name' and 'image'"
