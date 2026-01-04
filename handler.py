@@ -127,9 +127,233 @@ def _attempt_websocket_reconnect(ws_url, max_attempts, delay_s, initial_error):
     )
 
 
+def build_workflow(prompt, seed=None, steps=8, cfg=1):
+    """
+    Build the ComfyUI workflow dynamically from simplified inputs.
+    
+    Args:
+        prompt (str): The text prompt for image editing
+        seed (int, optional): Random seed for generation. If None, generates random seed.
+        steps (int): Number of inference steps (default: 8)
+        cfg (float): CFG scale (default: 1)
+    
+    Returns:
+        dict: Complete ComfyUI workflow
+    """
+    if seed is None:
+        seed = int(time.time() * 1000) % (2**32)  # Generate random seed
+    
+    # Generate additional seeds for other nodes
+    upscaler_seed = (seed + 12345) % (2**32)
+    
+    return {
+        "1": {
+            "inputs": {"strength": 1, "model": ["2", 0]},
+            "class_type": "CFGNorm",
+            "_meta": {"title": "CFGNorm"}
+        },
+        "2": {
+            "inputs": {"shift": 3, "model": ["20", 0]},
+            "class_type": "ModelSamplingAuraFlow",
+            "_meta": {"title": "ModelSamplingAuraFlow"}
+        },
+        "3": {
+            "inputs": {
+                "prompt": "",
+                "clip": ["96", 0],
+                "vae": ["22", 0],
+                "image1": ["39", 0],
+                "image2": ["40", 0]
+            },
+            "class_type": "TextEncodeQwenImageEditPlus",
+            "_meta": {"title": "TextEncodeQwenImageEditPlus"}
+        },
+        "7": {
+            "inputs": {"image": "reference_image"},
+            "class_type": "LoadImage",
+            "_meta": {"title": "Load Image"}
+        },
+        "10": {
+            "inputs": {"pixels": ["39", 0], "vae": ["22", 0]},
+            "class_type": "VAEEncode",
+            "_meta": {"title": "VAE Encode"}
+        },
+        "11": {
+            "inputs": {
+                "prompt": prompt,
+                "clip": ["96", 0],
+                "vae": ["22", 0],
+                "image1": ["39", 0],
+                "image2": ["40", 0]
+            },
+            "class_type": "TextEncodeQwenImageEditPlus",
+            "_meta": {"title": "TextEncodeQwenImageEditPlus"}
+        },
+        "12": {
+            "inputs": {"samples": ["14", 0], "vae": ["22", 0]},
+            "class_type": "VAEDecode",
+            "_meta": {"title": "VAE Decode"}
+        },
+        "14": {
+            "inputs": {
+                "seed": seed,
+                "steps": steps,
+                "cfg": cfg,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1,
+                "model": ["1", 0],
+                "positive": ["11", 0],
+                "negative": ["3", 0],
+                "latent_image": ["10", 0]
+            },
+            "class_type": "KSampler",
+            "_meta": {"title": "KSampler"}
+        },
+        "20": {
+            "inputs": {
+                "lora_name": "Qwen-Image-Lightning-8steps-V1.1.safetensors",
+                "strength_model": 1,
+                "model": ["77", 0]
+            },
+            "class_type": "LoraLoaderModelOnly",
+            "_meta": {"title": "LoraLoaderModelOnly"}
+        },
+        "22": {
+            "inputs": {"vae_name": "qwen_image_vae.safetensors"},
+            "class_type": "VAELoader",
+            "_meta": {"title": "Load VAE"}
+        },
+        "31": {
+            "inputs": {"image": "main_image"},
+            "class_type": "LoadImage",
+            "_meta": {"title": "Load Image"}
+        },
+        "39": {
+            "inputs": {
+                "upscale_method": "lanczos",
+                "megapixels": 1,
+                "resolution_steps": 1,
+                "image": ["31", 0]
+            },
+            "class_type": "ImageScaleToTotalPixels",
+            "_meta": {"title": "ImageScaleToTotalPixels"}
+        },
+        "40": {
+            "inputs": {
+                "upscale_method": "lanczos",
+                "megapixels": 1,
+                "resolution_steps": 1,
+                "image": ["7", 0]
+            },
+            "class_type": "ImageScaleToTotalPixels",
+            "_meta": {"title": "ImageScaleToTotalPixels"}
+        },
+        "77": {
+            "inputs": {
+                "lora_name": "iclight_sd15_fc.safetensors",
+                "strength_model": 1,
+                "model": ["94", 0]
+            },
+            "class_type": "LoraLoaderModelOnly",
+            "_meta": {"title": "LoraLoaderModelOnly"}
+        },
+        "94": {
+            "inputs": {
+                "unet_name": "Qwen-Image-Edit-2509_fp8_e4m3fn.safetensors",
+                "weight_dtype": "default"
+            },
+            "class_type": "UNETLoader",
+            "_meta": {"title": "Load Diffusion Model"}
+        },
+        "96": {
+            "inputs": {
+                "clip_name": "qwen_2.5_vl_7b.safetensors",
+                "type": "stable_diffusion",
+                "device": "default"
+            },
+            "class_type": "CLIPLoader",
+            "_meta": {"title": "Load CLIP"}
+        },
+        "103": {
+            "inputs": {
+                "seed": upscaler_seed,
+                "resolution": ["109", 0],
+                "max_resolution": 4096,
+                "batch_size": 5,
+                "uniform_batch_size": False,
+                "color_correction": "lab",
+                "temporal_overlap": 0,
+                "prepend_frames": 0,
+                "input_noise_scale": 0,
+                "latent_noise_scale": 0,
+                "offload_device": "cpu",
+                "enable_debug": False,
+                "image": ["12", 0],
+                "dit": ["105", 0],
+                "vae": ["104", 0]
+            },
+            "class_type": "SeedVR2VideoUpscaler",
+            "_meta": {"title": "SeedVR2 Video Upscaler (v2.5.24)"}
+        },
+        "104": {
+            "inputs": {
+                "model": "ema_vae_fp16.safetensors",
+                "device": "cuda:0",
+                "encode_tiled": True,
+                "encode_tile_size": 1024,
+                "encode_tile_overlap": 128,
+                "decode_tiled": True,
+                "decode_tile_size": 1024,
+                "decode_tile_overlap": 128,
+                "tile_debug": "false",
+                "offload_device": "cpu",
+                "cache_model": False
+            },
+            "class_type": "SeedVR2LoadVAEModel",
+            "_meta": {"title": "SeedVR2 (Down)Load VAE Model"}
+        },
+        "105": {
+            "inputs": {
+                "model": "seedvr2_ema_3b_fp16.safetensors",
+                "device": "cuda:0",
+                "blocks_to_swap": 32,
+                "swap_io_components": True,
+                "offload_device": "cpu",
+                "cache_model": "sdpa",
+                "attention_mode": "sdpa"
+            },
+            "class_type": "SeedVR2LoadDiTModel",
+            "_meta": {"title": "SeedVR2 (Down)Load DiT Model"}
+        },
+        "106": {
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": ["103", 0]
+            },
+            "class_type": "SaveImage",
+            "_meta": {"title": "Save Image"}
+        },
+        "108": {
+            "inputs": {"image": ["31", 0]},
+            "class_type": "GetImageSize+",
+            "_meta": {"title": "🔧 Get Image Size"}
+        },
+        "109": {
+            "inputs": {
+                "int_a": ["108", 0],
+                "float_b": 2
+            },
+            "class_type": "Multiply Int Float (JPS)",
+            "_meta": {"title": "Multiply Int Float (JPS)"}
+        }
+    }
+
+
 def validate_input(job_input):
     """
     Validates the input for the handler function.
+    Supports both simplified format and full workflow format.
 
     Args:
         job_input (dict): The input data to validate.
@@ -149,10 +373,93 @@ def validate_input(job_input):
         except json.JSONDecodeError:
             return None, "Invalid JSON format in input"
 
-    # Validate 'workflow' in input
+    # Check if this is simplified format (has 'prompt' at top level)
+    if "prompt" in job_input and "workflow" not in job_input:
+        print("worker-comfyui - Detected simplified input format")
+        
+        # Validate required fields for simplified format
+        prompt = job_input.get("prompt")
+        if not prompt or not isinstance(prompt, str):
+            return None, "'prompt' must be a non-empty string"
+        
+        # Check for named image fields (new format)
+        main_image = job_input.get("main_image")
+        reference_image = job_input.get("reference_image")
+        
+        if main_image and reference_image:
+            # New format: named fields
+            if not isinstance(main_image, str):
+                return None, "'main_image' must be a base64 string"
+            if not isinstance(reference_image, str):
+                return None, "'reference_image' must be a base64 string"
+            
+            images = [
+                {"name": "main_image", "image": main_image},
+                {"name": "reference_image", "image": reference_image}
+            ]
+        else:
+            # Legacy format: array of images
+            images_array = job_input.get("images")
+            if not images_array:
+                return None, "Either 'main_image' and 'reference_image' or 'images' array must be provided"
+            
+            # Support both array of strings and array of objects
+            normalized_images = []
+            
+            if isinstance(images_array, list):
+                if len(images_array) < 2:
+                    return None, "At least 2 images required (image1: subject, image2: lighting)"
+                
+                # Check if it's array of strings (base64) or array of objects
+                for idx, image in enumerate(images_array):
+                    if isinstance(image, str):
+                        # Simple format: just base64 strings
+                        # Auto-assign names
+                        name = "main_image" if idx == 0 else "reference_image"
+                        normalized_images.append({"name": name, "image": image})
+                    elif isinstance(image, dict):
+                        # Old format: objects with name and image
+                        if "name" not in image or "image" not in image:
+                            return None, f"Image {idx} must have 'name' and 'image' keys or be a base64 string"
+                        # Override names to ensure correct workflow mapping
+                        name = "main_image" if idx == 0 else "reference_image"
+                        normalized_images.append({"name": name, "image": image["image"]})
+                    else:
+                        return None, f"Image {idx} must be a string (base64) or object with 'name' and 'image'"
+            else:
+                return None, "'images' must be an array"
+            
+            images = normalized_images
+        
+        # Get optional parameters with defaults
+        seed = job_input.get("seed")
+        steps = job_input.get("steps", 8)
+        cfg = job_input.get("cfg", 1)
+        
+        # Validate optional parameters
+        if not isinstance(steps, int) or steps < 1 or steps > 50:
+            return None, "'steps' must be an integer between 1 and 50"
+        if not isinstance(cfg, (int, float)) or cfg < 0 or cfg > 20:
+            return None, "'cfg' must be a number between 0 and 20"
+        if seed is not None and not isinstance(seed, int):
+            return None, "'seed' must be an integer if provided"
+        
+        # Build workflow from simplified input
+        workflow = build_workflow(prompt, seed, steps, cfg)
+        
+        print(f"worker-comfyui - Built workflow with prompt: '{prompt[:50]}...'")
+        
+        # Return validated data
+        return {
+            "workflow": workflow,
+            "images": images,
+            "comfy_org_api_key": job_input.get("comfy_org_api_key"),
+        }, None
+    
+    # Otherwise, validate full workflow format
     workflow = job_input.get("workflow")
     if workflow is None:
-        return None, "Missing 'workflow' parameter"
+        return None, "Missing 'workflow' or 'prompt' parameter"
 
     # Validate 'images' in input, if provided
     images = job_input.get("images")

@@ -1,0 +1,10 @@
+{
+  "input": {
+    "prompt": "使用图2的亮度贴图对图1重新照明(光源来自前方)",
+    "main_image": "data:image/png;base64,YOUR_BASE64_ENCODED_IMAGE_1_HERE",
+    "reference_image": "data:image/png;base64,YOUR_BASE64_ENCODED_IMAGE_2_HERE",
+    "steps": 8,
+    "cfg": 1,
+    "seed": 878021536094148
+  }
+}
