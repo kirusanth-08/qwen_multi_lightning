@@ -387,11 +387,11 @@ def validate_input(job_input):
         reference_image = job_input.get("reference_image")
         
         if main_image and reference_image:
-            # New format: named fields
+            # New format: named fields (supports base64 or URLs)
             if not isinstance(main_image, str):
-                return None, "'main_image' must be a base64 string"
+                return None, "'main_image' must be a base64 string or URL"
             if not isinstance(reference_image, str):
-                return None, "'reference_image' must be a base64 string"
+                return None, "'reference_image' must be a base64 string or URL"
             
             images = [
                 {"name": "main_image", "image": main_image},
@@ -410,22 +410,22 @@ def validate_input(job_input):
                 if len(images_array) < 2:
                     return None, "At least 2 images required (image1: subject, image2: lighting)"
                 
-                # Check if it's array of strings (base64) or array of objects
+                # Check if it's array of strings (base64/URLs) or array of objects
                 for idx, image in enumerate(images_array):
                     if isinstance(image, str):
-                        # Simple format: just base64 strings
+                        # Simple format: base64 strings or URLs
                         # Auto-assign names
                         name = "main_image" if idx == 0 else "reference_image"
                         normalized_images.append({"name": name, "image": image})
                     elif isinstance(image, dict):
                         # Old format: objects with name and image
                         if "name" not in image or "image" not in image:
-                            return None, f"Image {idx} must have 'name' and 'image' keys or be a base64 string"
+                            return None, f"Image {idx} must have 'name' and 'image' keys or be a base64 string/URL"
                         # Override names to ensure correct workflow mapping
                         name = "main_image" if idx == 0 else "reference_image"
                         normalized_images.append({"name": name, "image": image["image"]})
                     else:
-                        return None, f"Image {idx} must be a string (base64) or object with 'name' and 'image'"
+                        return None, f"Image {idx} must be a string (base64/URL) or object with 'name' and 'image'"
             else:
                 return None, "'images' must be an array"
             
@@ -521,10 +521,13 @@ def check_server(url, retries=500, delay=50):
 
 def upload_images(images):
     """
-    Upload a list of base64 encoded images to the ComfyUI server using the /upload/image endpoint.
+    Upload a list of images to the ComfyUI server using the /upload/image endpoint.
+    
+    Supports both base64 encoded images and image URLs.
 
     Args:
-        images (list): A list of dictionaries, each containing the 'name' of the image and the 'image' as a base64 encoded string.
+        images (list): A list of dictionaries, each containing the 'name' of the image 
+                      and the 'image' as either a base64 encoded string or a URL.
 
     Returns:
         dict: A dictionary indicating success or error.
@@ -540,18 +543,34 @@ def upload_images(images):
     for image in images:
         try:
             name = image["name"]
-            image_data_uri = image["image"]  # Get the full string (might have prefix)
-
-            # --- Strip Data URI prefix if present ---
-            if "," in image_data_uri:
-                # Find the comma and take everything after it
-                base64_data = image_data_uri.split(",", 1)[1]
+            image_data = image["image"]  # Can be base64 string or URL
+            
+            # Check if it's a URL
+            if image_data.startswith(("http://", "https://")):
+                print(f"worker-comfyui - Downloading image from URL: {image_data}")
+                try:
+                    # Download image from URL
+                    img_response = requests.get(image_data, timeout=30)
+                    img_response.raise_for_status()
+                    blob = img_response.content
+                    print(f"worker-comfyui - Successfully downloaded image from URL ({len(blob)} bytes)")
+                except requests.RequestException as e:
+                    error_msg = f"Error downloading image from URL {image_data}: {e}"
+                    print(f"worker-comfyui - {error_msg}")
+                    upload_errors.append(error_msg)
+                    continue
             else:
-                # Assume it's already pure base64
-                base64_data = image_data_uri
-            # --- End strip ---
+                # Handle base64 encoded image
+                # --- Strip Data URI prefix if present ---
+                if "," in image_data:
+                    # Find the comma and take everything after it
+                    base64_data = image_data.split(",", 1)[1]
+                else:
+                    # Assume it's already pure base64
+                    base64_data = image_data
+                # --- End strip ---
 
-            blob = base64.b64decode(base64_data)  # Decode the cleaned data
+                blob = base64.b64decode(base64_data)  # Decode the cleaned data
 
             # Prepare the form data
             files = {

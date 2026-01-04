@@ -1,3 +1,23 @@
+# Changelog
+
+## [Unreleased]
+
+### Added
+- **URL Support for Image Inputs**: Images can now be provided as HTTP(S) URLs in addition to base64 encoded strings
+  - Automatically downloads images from URLs during job execution
+  - Helps avoid RunPod request size limits (10MB/20MB) for large images
+  - Supports all input formats: simplified API (`main_image`/`reference_image`), array format, and full workflow format
+  - Backward compatible with existing base64 workflows
+- Added `test_input_urls.json` example demonstrating URL usage
+- Added `example_api_usage.py` script with URL and base64 examples
+- Added documentation in `docs/url_support_implementation.md`
+
+### Changed
+- Updated `upload_images()` function to detect and download images from URLs
+- Enhanced input validation messages to reflect URL support
+- Updated API_USAGE.md with URL examples and best practices
+- Updated README.md to document URL support in image inputs
+
 # [5.3.0](https://github.com/runpod-workers/worker-comfyui/compare/5.2.0...5.3.0) (2025-07-22)
 
 

@@ -1,0 +1,10 @@
+{
+  "input": {
+    "prompt": "Relight Figure 1 using the brightness map from Figure 2 (light source from the front)",
+    "main_image": "https://example.com/path/to/main_image.jpg",
+    "reference_image": "https://example.com/path/to/reference_image.jpg",
+    "seed": 452037337342133,
+    "steps": 8,
+    "cfg": 1
+  }
+}

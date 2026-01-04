@@ -92,9 +92,14 @@ Each object within the `input.images` array must contain:
 | Field Name | Type   | Required | Description                                                                                                                       |
 | ---------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `name`     | String | Yes      | Filename used to reference the image in the workflow (e.g., via a "Load Image" node). Must be unique within the array.            |
-| `image`    | String | Yes      | Base64 encoded string of the image. A data URI prefix (e.g., `data:image/png;base64,`) is optional and will be handled correctly. |
+| `image`    | String | Yes      | Base64 encoded string or HTTP(S) URL of the image. Base64 data URI prefix (e.g., `data:image/png;base64,`) is optional and will be handled correctly. URLs will be automatically downloaded. |
 
 > [!NOTE]
+>
+> **Image Input Options:**
+> - Base64 encoded images (with or without data URI prefix)
+> - Direct HTTP(S) URLs to publicly accessible images
+> - For large images, using URLs is recommended to avoid request size limits
 >
 > **Size Limits:** RunPod endpoints have request size limits (e.g., 10MB for `/run`, 20MB for `/runsync`). Large base64 input images can exceed these limits. See [RunPod Docs](https://docs.runpod.io/docs/serverless-endpoint-urls).
 
