@@ -287,7 +287,7 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
                 "prepend_frames": 0,
                 "input_noise_scale": 0,
                 "latent_noise_scale": 0,
-                "offload_device": "cpu",
+                "offload_device": "cuda:0",
                 "enable_debug": False,
                 "image": ["12", 0],
                 "dit": ["105", 0],
@@ -307,8 +307,8 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
                 "decode_tile_size": 1024,
                 "decode_tile_overlap": 128,
                 "tile_debug": "false",
-                "offload_device": "cpu",
-                "cache_model": False
+                "offload_device": "cuda:0",
+                "cache_model": True
             },
             "class_type": "SeedVR2LoadVAEModel",
             "_meta": {"title": "SeedVR2 (Down)Load VAE Model"}
@@ -319,7 +319,7 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
                 "device": "cuda:0",
                 "blocks_to_swap": 32,
                 "swap_io_components": True,
-                "offload_device": "cpu",
+                "offload_device": "cuda:0",
                 "cache_model": "sdpa",
                 "attention_mode": "sdpa"
             },
