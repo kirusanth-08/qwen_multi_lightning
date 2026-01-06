@@ -143,9 +143,6 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
     if seed is None:
         seed = int(time.time() * 1000) % (2**32)  # Generate random seed
     
-    # Generate additional seeds for other nodes
-    upscaler_seed = (seed + 12345) % (2**32)
-    
     return {
         "1": {
             "inputs": {"strength": 1, "model": ["2", 0]},
@@ -275,77 +272,13 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
             "class_type": "CLIPLoader",
             "_meta": {"title": "Load CLIP"}
         },
-        "103": {
-            "inputs": {
-                "seed": upscaler_seed,
-                "resolution": ["109", 0],
-                "max_resolution": 4096,
-                "batch_size": 5,
-                "uniform_batch_size": False,
-                "color_correction": "lab",
-                "temporal_overlap": 0,
-                "prepend_frames": 0,
-                "input_noise_scale": 0,
-                "latent_noise_scale": 0,
-                "offload_device": "cuda:0",
-                "enable_debug": False,
-                "image": ["12", 0],
-                "dit": ["105", 0],
-                "vae": ["104", 0]
-            },
-            "class_type": "SeedVR2VideoUpscaler",
-            "_meta": {"title": "SeedVR2 Video Upscaler (v2.5.24)"}
-        },
-        "104": {
-            "inputs": {
-                "model": "ema_vae_fp16.safetensors",
-                "device": "cuda:0",
-                "encode_tiled": True,
-                "encode_tile_size": 1024,
-                "encode_tile_overlap": 128,
-                "decode_tiled": True,
-                "decode_tile_size": 1024,
-                "decode_tile_overlap": 128,
-                "tile_debug": "false",
-                "offload_device": "cuda:0",
-                "cache_model": True
-            },
-            "class_type": "SeedVR2LoadVAEModel",
-            "_meta": {"title": "SeedVR2 (Down)Load VAE Model"}
-        },
-        "105": {
-            "inputs": {
-                "model": "seedvr2_ema_3b_fp16.safetensors",
-                "device": "cuda:0",
-                "blocks_to_swap": 0,
-                "swap_io_components": False,
-                "offload_device": "cuda:0",
-                "cache_model": "sdpa",
-                "attention_mode": "sdpa"
-            },
-            "class_type": "SeedVR2LoadDiTModel",
-            "_meta": {"title": "SeedVR2 (Down)Load DiT Model"}
-        },
         "106": {
             "inputs": {
                 "filename_prefix": "ComfyUI",
-                "images": ["103", 0]
+                "images": ["12", 0]
             },
             "class_type": "SaveImage",
             "_meta": {"title": "Save Image"}
-        },
-        "108": {
-            "inputs": {"image": ["31", 0]},
-            "class_type": "GetImageSize+",
-            "_meta": {"title": "🔧 Get Image Size"}
-        },
-        "109": {
-            "inputs": {
-                "int_a": ["108", 0],
-                "float_b": 2
-            },
-            "class_type": "Multiply Int Float (JPS)",
-            "_meta": {"title": "Multiply Int Float (JPS)"}
         }
     }
 
