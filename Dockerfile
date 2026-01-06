@@ -56,14 +56,10 @@ RUN if [ -n "${CUDA_VERSION_FOR_COMFY}" ]; then \
       /usr/bin/yes | comfy --workspace /comfyui install --version "${COMFYUI_VERSION}" --nvidia; \
     fi
 
-# Upgrade PyTorch if needed (for newer CUDA versions)
+# Upgrade PyTorch if needed (for newer CUDA versions like H100)
 RUN if [ "$ENABLE_PYTORCH_UPGRADE" = "true" ]; then \
       uv pip install --force-reinstall torch torchvision torchaudio --index-url ${PYTORCH_INDEX_URL}; \
     fi
-
-# Force PyTorch upgrade for H100 support (requires PyTorch 2.0+ with CUDA 12.x)
-# This ensures H100 compute capability 9.0 is supported
-RUN uv pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
