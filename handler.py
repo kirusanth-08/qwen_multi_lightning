@@ -317,8 +317,8 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
             "inputs": {
                 "model": "seedvr2_ema_3b_fp16.safetensors",
                 "device": "cuda:0",
-                "blocks_to_swap": 32,
-                "swap_io_components": True,
+                "blocks_to_swap": 0,
+                "swap_io_components": False,
                 "offload_device": "cuda:0",
                 "cache_model": "sdpa",
                 "attention_mode": "sdpa"
