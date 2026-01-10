@@ -1,4 +1,5 @@
 {
+  "webhook": "https://your-server.com/webhook-endpoint",
   "input": {
     "workflow": {
       "1": {

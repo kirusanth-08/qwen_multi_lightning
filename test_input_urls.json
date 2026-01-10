@@ -1,4 +1,5 @@
 {
+  "webhook": "https://your-server.com/webhook-endpoint",
   "input": {
     "prompt": "Relight Figure 1 using the brightness map from Figure 2 (light source from the front)",
     "main_image": "https://example.com/path/to/main_image.jpg",
