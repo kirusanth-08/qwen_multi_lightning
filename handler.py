@@ -156,7 +156,7 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
         },
         "3": {
             "inputs": {
-                "prompt": "",
+                "prompt": "Dont change the background of the image 1 and dont zoom or change the size of image. Don't change the texture of the image",
                 "clip": ["96", 0],
                 "vae": ["22", 0],
                 "image1": ["39", 0],
