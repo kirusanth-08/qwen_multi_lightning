@@ -250,6 +250,15 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
             "inputs": {
                 "lora_name": "iclight_sd15_fc.safetensors",
                 "strength_model": 1,
+                "model": ["78", 0]
+            },
+            "class_type": "LoraLoaderModelOnly",
+            "_meta": {"title": "LoraLoaderModelOnly"}
+        },
+        "78": {
+            "inputs": {
+                "lora_name": "参考色调.safetensors",
+                "strength_model": 1,
                 "model": ["94", 0]
             },
             "class_type": "LoraLoaderModelOnly",
