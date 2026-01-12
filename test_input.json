@@ -213,7 +213,7 @@
       },
       "77": {
         "inputs": {
-          "lora_name": "iclight_sd15_fc.safetensors",
+          "lora_name": "参考色调.safetensors",
           "strength_model": 1,
           "model": [
             "94",
