@@ -209,7 +209,7 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
         },
         "20": {
             "inputs": {
-                "lora_name": "Qwen-Image-Lightning-8steps-V1.1.safetensors",
+                "lora_name": "Qwen-Image-Lightning-8steps-V2.0.safetensors",
                 "strength_model": 1,
                 "model": ["77", 0]
             },
