@@ -26,8 +26,8 @@ The simplified format allows you to send just the essential parameters without n
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `prompt` | string | Yes | - | Text description of the editing task (supports Chinese and English) |
-| `main_image` | string | Yes | - | Base64-encoded main subject/scene to be relit |
-| `reference_image` | string | Yes | - | Base64-encoded lighting map/reference image |
+| `main_image` | string | Yes | - | Base64-encoded image or URL to main subject/scene to be relit |
+| `reference_image` | string | Yes | - | Base64-encoded image or URL to lighting map/reference image |
 | `steps` | integer | No | 8 | Number of inference steps (1-50) |
 | `cfg` | number | No | 1 | CFG scale for guidance (0-20) |
 | `seed` | integer | No | random | Random seed for reproducibility |
@@ -36,13 +36,17 @@ The simplified format allows you to send just the essential parameters without n
 
 **Accepted formats:**
 ```json
-// With data URI prefix (recommended)
+// Base64 with data URI prefix (recommended)
 "main_image": "data:image/png;base64,iVBORw0KGgo...",
 "reference_image": "data:image/jpeg;base64,/9j/4AAQSkZJ..."
 
-// Without prefix (also works)
+// Base64 without prefix (also works)
 "main_image": "iVBORw0KGgo...",
 "reference_image": "/9j/4AAQSkZJ..."
+
+// Image URLs (NEW)
+"main_image": "https://example.com/images/main.jpg",
+"reference_image": "https://example.com/images/reference.png"
 ```
 
 ### Example Request
@@ -55,6 +59,21 @@ The simplified format allows you to send just the essential parameters without n
     "reference_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA...",
     "steps": 8,
     "cfg": 1
+  }
+}
+```
+
+### Example Request with URLs
+
+```json
+{
+  "input": {
+    "prompt": "Relight Figure 1 using the brightness map from Figure 2 (light source from the front)",
+    "main_image": "https://example.com/images/main.jpg",
+    "reference_image": "https://example.com/images/reference.png",
+    "steps": 8,
+    "cfg": 1,
+    "seed": 452037337342133
   }
 }
 ```
@@ -131,6 +150,7 @@ import requests
 import base64
 import json
 
+# Option 1: Using Base64 encoded images
 # Read and encode images
 with open("main_image.jpg", "rb") as f:
     image1_b64 = base64.b64encode(f.read()).decode('utf-8')
@@ -144,6 +164,17 @@ payload = {
         "prompt": "使用图2的亮度贴图对图1重新照明(光源来自前方)",
         "main_image": image1_b64,
         "reference_image": image2_b64,
+        "steps": 8,
+        "cfg": 1
+    }
+}
+
+# Option 2: Using image URLs (simpler and avoids size limits)
+payload = {
+    "input": {
+        "prompt": "Relight Figure 1 using the brightness map from Figure 2",
+        "main_image": "https://example.com/images/main.jpg",
+        "reference_image": "https://example.com/images/reference.png",
         "steps": 8,
         "cfg": 1
     }
@@ -173,6 +204,7 @@ if "images" in result:
 const fs = require('fs');
 const axios = require('axios');
 
+// Option 1: Using Base64 encoded images
 // Read and encode images
 const image1 = fs.readFileSync('main_image.jpg', { encoding: 'base64' });
 const image2 = fs.readFileSync('reference_image.jpg', { encoding: 'base64' });
@@ -183,6 +215,17 @@ const payload = {
     prompt: "使用图2的亮度贴图对图1重新照明(光源来自前方)",
     main_image: image1,
     reference_image: image2,
+    steps: 8,
+    cfg: 1
+  }
+};
+
+// Option 2: Using image URLs (recommended for large images)
+const payloadWithUrls = {
+  input: {
+    prompt: "Relight Figure 1 using the brightness map from Figure 2",
+    main_image: "https://example.com/images/main.jpg",
+    reference_image: "https://example.com/images/reference.png",
     steps: 8,
     cfg: 1
   }

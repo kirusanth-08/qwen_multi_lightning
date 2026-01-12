@@ -143,9 +143,6 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
     if seed is None:
         seed = int(time.time() * 1000) % (2**32)  # Generate random seed
     
-    # Generate additional seeds for other nodes
-    upscaler_seed = (seed + 12345) % (2**32)
-    
     return {
         "1": {
             "inputs": {"strength": 1, "model": ["2", 0]},
@@ -275,77 +272,13 @@ def build_workflow(prompt, seed=None, steps=8, cfg=1):
             "class_type": "CLIPLoader",
             "_meta": {"title": "Load CLIP"}
         },
-        "103": {
-            "inputs": {
-                "seed": upscaler_seed,
-                "resolution": ["109", 0],
-                "max_resolution": 4096,
-                "batch_size": 5,
-                "uniform_batch_size": False,
-                "color_correction": "lab",
-                "temporal_overlap": 0,
-                "prepend_frames": 0,
-                "input_noise_scale": 0,
-                "latent_noise_scale": 0,
-                "offload_device": "cpu",
-                "enable_debug": False,
-                "image": ["12", 0],
-                "dit": ["105", 0],
-                "vae": ["104", 0]
-            },
-            "class_type": "SeedVR2VideoUpscaler",
-            "_meta": {"title": "SeedVR2 Video Upscaler (v2.5.24)"}
-        },
-        "104": {
-            "inputs": {
-                "model": "ema_vae_fp16.safetensors",
-                "device": "cuda:0",
-                "encode_tiled": True,
-                "encode_tile_size": 1024,
-                "encode_tile_overlap": 128,
-                "decode_tiled": True,
-                "decode_tile_size": 1024,
-                "decode_tile_overlap": 128,
-                "tile_debug": "false",
-                "offload_device": "cpu",
-                "cache_model": False
-            },
-            "class_type": "SeedVR2LoadVAEModel",
-            "_meta": {"title": "SeedVR2 (Down)Load VAE Model"}
-        },
-        "105": {
-            "inputs": {
-                "model": "seedvr2_ema_3b_fp16.safetensors",
-                "device": "cuda:0",
-                "blocks_to_swap": 32,
-                "swap_io_components": True,
-                "offload_device": "cpu",
-                "cache_model": "sdpa",
-                "attention_mode": "sdpa"
-            },
-            "class_type": "SeedVR2LoadDiTModel",
-            "_meta": {"title": "SeedVR2 (Down)Load DiT Model"}
-        },
         "106": {
             "inputs": {
                 "filename_prefix": "ComfyUI",
-                "images": ["103", 0]
+                "images": ["12", 0]
             },
             "class_type": "SaveImage",
             "_meta": {"title": "Save Image"}
-        },
-        "108": {
-            "inputs": {"image": ["31", 0]},
-            "class_type": "GetImageSize+",
-            "_meta": {"title": "🔧 Get Image Size"}
-        },
-        "109": {
-            "inputs": {
-                "int_a": ["108", 0],
-                "float_b": 2
-            },
-            "class_type": "Multiply Int Float (JPS)",
-            "_meta": {"title": "Multiply Int Float (JPS)"}
         }
     }
 
@@ -387,11 +320,11 @@ def validate_input(job_input):
         reference_image = job_input.get("reference_image")
         
         if main_image and reference_image:
-            # New format: named fields
+            # New format: named fields (supports base64 or URLs)
             if not isinstance(main_image, str):
-                return None, "'main_image' must be a base64 string"
+                return None, "'main_image' must be a base64 string or URL"
             if not isinstance(reference_image, str):
-                return None, "'reference_image' must be a base64 string"
+                return None, "'reference_image' must be a base64 string or URL"
             
             images = [
                 {"name": "main_image", "image": main_image},
@@ -410,22 +343,22 @@ def validate_input(job_input):
                 if len(images_array) < 2:
                     return None, "At least 2 images required (image1: subject, image2: lighting)"
                 
-                # Check if it's array of strings (base64) or array of objects
+                # Check if it's array of strings (base64/URLs) or array of objects
                 for idx, image in enumerate(images_array):
                     if isinstance(image, str):
-                        # Simple format: just base64 strings
+                        # Simple format: base64 strings or URLs
                         # Auto-assign names
                         name = "main_image" if idx == 0 else "reference_image"
                         normalized_images.append({"name": name, "image": image})
                     elif isinstance(image, dict):
                         # Old format: objects with name and image
                         if "name" not in image or "image" not in image:
-                            return None, f"Image {idx} must have 'name' and 'image' keys or be a base64 string"
+                            return None, f"Image {idx} must have 'name' and 'image' keys or be a base64 string/URL"
                         # Override names to ensure correct workflow mapping
                         name = "main_image" if idx == 0 else "reference_image"
                         normalized_images.append({"name": name, "image": image["image"]})
                     else:
-                        return None, f"Image {idx} must be a string (base64) or object with 'name' and 'image'"
+                        return None, f"Image {idx} must be a string (base64/URL) or object with 'name' and 'image'"
             else:
                 return None, "'images' must be an array"
             
@@ -521,10 +454,13 @@ def check_server(url, retries=500, delay=50):
 
 def upload_images(images):
     """
-    Upload a list of base64 encoded images to the ComfyUI server using the /upload/image endpoint.
+    Upload a list of images to the ComfyUI server using the /upload/image endpoint.
+    
+    Supports both base64 encoded images and image URLs.
 
     Args:
-        images (list): A list of dictionaries, each containing the 'name' of the image and the 'image' as a base64 encoded string.
+        images (list): A list of dictionaries, each containing the 'name' of the image 
+                      and the 'image' as either a base64 encoded string or a URL.
 
     Returns:
         dict: A dictionary indicating success or error.
@@ -540,18 +476,34 @@ def upload_images(images):
     for image in images:
         try:
             name = image["name"]
-            image_data_uri = image["image"]  # Get the full string (might have prefix)
-
-            # --- Strip Data URI prefix if present ---
-            if "," in image_data_uri:
-                # Find the comma and take everything after it
-                base64_data = image_data_uri.split(",", 1)[1]
+            image_data = image["image"]  # Can be base64 string or URL
+            
+            # Check if it's a URL
+            if image_data.startswith(("http://", "https://")):
+                print(f"worker-comfyui - Downloading image from URL: {image_data}")
+                try:
+                    # Download image from URL
+                    img_response = requests.get(image_data, timeout=30)
+                    img_response.raise_for_status()
+                    blob = img_response.content
+                    print(f"worker-comfyui - Successfully downloaded image from URL ({len(blob)} bytes)")
+                except requests.RequestException as e:
+                    error_msg = f"Error downloading image from URL {image_data}: {e}"
+                    print(f"worker-comfyui - {error_msg}")
+                    upload_errors.append(error_msg)
+                    continue
             else:
-                # Assume it's already pure base64
-                base64_data = image_data_uri
-            # --- End strip ---
+                # Handle base64 encoded image
+                # --- Strip Data URI prefix if present ---
+                if "," in image_data:
+                    # Find the comma and take everything after it
+                    base64_data = image_data.split(",", 1)[1]
+                else:
+                    # Assume it's already pure base64
+                    base64_data = image_data
+                # --- End strip ---
 
-            blob = base64.b64decode(base64_data)  # Decode the cleaned data
+                blob = base64.b64decode(base64_data)  # Decode the cleaned data
 
             # Prepare the form data
             files = {

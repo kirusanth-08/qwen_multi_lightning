@@ -5,10 +5,6 @@
             "hash": "0e2a9aca02b17dde91577bfe4b65861df622dcaf",
             "disabled": false
         },
-        "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler": {
-            "hash": "4490bd1f482e026674543386bb2a4d176da245b9",
-            "disabled": false
-        },
         "https://github.com/MadiatorLabs/ComfyUI-RunpodDirect": {
             "hash": "f7cc02cccb499e0170d8040d1788bf44598e2709",
             "disabled": false

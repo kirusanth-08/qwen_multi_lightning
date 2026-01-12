@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Use libtcmalloc for better memory management
-TCMALLOC="$(ldconfig -p | grep -Po "libtcmalloc.so.\d" | head -n 1)"
-export LD_PRELOAD="${TCMALLOC}"
+# Note: LD_PRELOAD with tcmalloc can interfere with CUDA 12.6+ initialization
+# Removed to prevent "CUDA unknown error" during torch.cuda.current_device()
+# If memory management issues arise, consider setting after CUDA init or use PyTorch allocator
 
 
 # Ensure ComfyUI-Manager runs in offline network mode inside the container
