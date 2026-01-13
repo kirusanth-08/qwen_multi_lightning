@@ -88,7 +88,6 @@ echo ""
 echo "LoRA Models (REQUIRED):"
 check_file "$MODELS_BASE/loras/Qwen-Image-Lightning-8steps-V2.0.safetensors" "Qwen-Image-Lightning-8steps-V2.0" true || ((ERRORS++))
 check_file "$MODELS_BASE/loras/iclight_sd15_fc.safetensors" "iclight_sd15_fc" true || ((ERRORS++))
-check_file "$MODELS_BASE/loras/reference_color_tone.safetensors" "reference_color_tone" true || ((ERRORS++))
 
 # Check required VAE
 echo ""

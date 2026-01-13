@@ -125,11 +125,6 @@ RUN comfy model download \
     --relative-path models/loras \
     --filename iclight_sd15_fc.safetensors
 
-RUN comfy model download \
-    --url "https://huggingface.co/dx8152/Qwen-Edit-2509-Light-Migration/resolve/main/%E5%8F%82%E8%80%83%E8%89%B2%E8%B0%83.safetensors" \
-    --relative-path models/loras \
-    --filename reference_color_tone.safetensors
-
 # Download VAE
 RUN comfy model download \
     --url https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors \
