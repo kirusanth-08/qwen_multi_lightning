@@ -9,11 +9,31 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo "======================================================================"
-echo "worker-comfyui-qwen_edit: Checking RunPod Volume Models"
+echo "worker-comfyui-qwen_multi_lightning: Checking Baked-in Models"
 echo "======================================================================"
 
-# Network volume base path
-VOLUME_BASE="/runpod-volume"
+# Models are baked into the container at /comfyui/models/
+MODELS_BASE="/comfyui/models"
+
+# Function to check if a specific file exists
+check_file() {
+    local file_path=$1
+    local file_name=$2
+    local required=${3:-false}
+    
+    if [ -f "$file_path" ]; then
+        echo -e "${GREEN}✓${NC} $file_name: Found"
+        return 0
+    else
+        if [ "$required" = true ]; then
+            echo -e "${RED}✗${NC} $file_name: NOT FOUND at $file_path"
+            return 1
+        else
+            echo -e "${YELLOW}⚠${NC} $file_name: Not found (optional)"
+            return 0
+        fi
+    fi
+}
 
 # Function to check if a directory exists and has files
 check_directory() {
@@ -46,43 +66,51 @@ check_directory() {
     fi
 }
 
-# Check if volume is mounted
-if [ ! -d "$VOLUME_BASE" ]; then
-    echo -e "${RED}ERROR: RunPod volume not found at $VOLUME_BASE${NC}"
-    echo "This worker requires a network volume to be attached."
-    echo "Please ensure your RunPod endpoint has a network volume mounted at $VOLUME_BASE"
+# Check if models directory exists
+if [ ! -d "$MODELS_BASE" ]; then
+    echo -e "${RED}ERROR: Models directory not found at $MODELS_BASE${NC}"
+    echo "Models should be baked into the container during build."
     exit 1
 fi
 
-echo -e "${GREEN}✓${NC} RunPod volume mounted at: $VOLUME_BASE"
+echo -e "${GREEN}✓${NC} Models directory found at: $MODELS_BASE"
 echo ""
 
 # Track overall status
 ERRORS=0
 WARNINGS=0
 
-echo "Checking model directories..."
+echo "Checking required models for Qwen Multi Lightning workflow..."
 echo "----------------------------------------------------------------------"
 
-# Check required base models
+# Check required LoRA models
 echo ""
-echo "Base Models (REQUIRED):"
-check_directory "$VOLUME_BASE/models/checkpoints" "Checkpoints" true || ((ERRORS++))
+echo "LoRA Models (REQUIRED):"
+check_file "$MODELS_BASE/loras/Qwen-Image-Lightning-8steps-V2.0.safetensors" "Qwen-Image-Lightning-8steps-V2.0" true || ((ERRORS++))
+check_file "$MODELS_BASE/loras/iclight_sd15_fc.safetensors" "iclight_sd15_fc" true || ((ERRORS++))
+check_file "$MODELS_BASE/loras/reference_color_tone.safetensors" "reference_color_tone" true || ((ERRORS++))
 
-# Check optional but recommended models
+# Check required VAE
 echo ""
-echo "Recommended Models:"
-check_directory "$VOLUME_BASE/models/vae" "VAE Models" false || ((WARNINGS++))
-check_directory "$VOLUME_BASE/models/clip" "CLIP Models" false || ((WARNINGS++))
-check_directory "$VOLUME_BASE/models/unet" "UNET Models" false || ((WARNINGS++))
+echo "VAE Models (REQUIRED):"
+check_file "$MODELS_BASE/vae/qwen_image_vae.safetensors" "qwen_image_vae" true || ((ERRORS++))
 
-# Check optional enhancement models
+# Check required UNET
 echo ""
-echo "Optional Enhancement Models:"
-check_directory "$VOLUME_BASE/models/loras" "LoRA Models" false || ((WARNINGS++))
-check_directory "$VOLUME_BASE/models/controlnet" "ControlNet Models" false || ((WARNINGS++))
-check_directory "$VOLUME_BASE/models/upscale_models" "Upscale Models" false || ((WARNINGS++))
-check_directory "$VOLUME_BASE/models/embeddings" "Embeddings" false || ((WARNINGS++))
+echo "UNET/Diffusion Models (REQUIRED):"
+check_file "$MODELS_BASE/unet/Qwen-Image-Edit-2509_fp8_e4m3fn.safetensors" "Qwen-Image-Edit-2509_fp8_e4m3fn" true || ((ERRORS++))
+
+# Check required CLIP
+echo ""
+echo "CLIP Models (REQUIRED):"
+check_file "$MODELS_BASE/clip/qwen_2.5_vl_7b.safetensors" "qwen_2.5_vl_7b" true || ((ERRORS++))
+
+# Check optional directories
+echo ""
+echo "Optional Model Directories:"
+check_directory "$MODELS_BASE/checkpoints" "Checkpoints" false || ((WARNINGS++))
+check_directory "$MODELS_BASE/controlnet" "ControlNet" false || ((WARNINGS++))
+check_directory "$MODELS_BASE/upscale_models" "Upscale Models" false || ((WARNINGS++))
 
 echo ""
 echo "======================================================================"
@@ -90,11 +118,12 @@ echo "======================================================================"
 # Print summary
 if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
     echo -e "${GREEN}✓ All checks passed!${NC}"
+    echo "All required models are baked into the container."
     echo "======================================================================"
     exit 0
 elif [ $ERRORS -eq 0 ]; then
     echo -e "${YELLOW}⚠ Checks completed with $WARNINGS warning(s)${NC}"
-    echo "The worker will start, but some optional features may not be available."
+    echo "All required models are present. Some optional directories are empty."
     echo "======================================================================"
     exit 0
 else
@@ -102,14 +131,18 @@ else
     echo ""
     echo "REQUIRED MODELS MISSING!"
     echo ""
-    echo "Please ensure your RunPod network volume contains:"
-    echo "  • At least one checkpoint model in: $VOLUME_BASE/models/checkpoints/"
+    echo "The following models should be baked into the container:"
+    echo "  • LoRAs:"
+    echo "    - Qwen-Image-Lightning-8steps-V2.0.safetensors"
+    echo "    - iclight_sd15_fc.safetensors"
+    echo "  • VAE:"
+    echo "    - qwen_image_vae.safetensors"
+    echo "  • UNET:"
+    echo "    - Qwen-Image-Edit-2509_fp8_e4m3fn.safetensors"
+    echo "  • CLIP:"
+    echo "    - qwen_2.5_vl_7b.safetensors"
     echo ""
-    echo "Your workflow may also need additional models in:"
-    echo "  • $VOLUME_BASE/models/vae/"
-    echo "  • $VOLUME_BASE/models/clip/"
-    echo "  • $VOLUME_BASE/models/unet/"
-    echo "  • Any other model directories your workflow uses"
+    echo "Please rebuild the Docker image to include all required models."
     echo "======================================================================"
     
     # Allow override with environment variable for testing

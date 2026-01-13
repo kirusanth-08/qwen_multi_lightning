@@ -101,17 +101,58 @@ RUN chmod +x /restore_snapshot.sh && \
 
 
 
-# Set the default command to run when starting the container
-CMD ["/start.sh"]
-
-# Stage 2: Download models
+# Stage 2: Download models - bake all models into the container
 FROM base AS downloader
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
 
+# Create model directories
+RUN mkdir -p models/loras models/vae models/unet models/clip
+
+# ============================================================================
+# Download required models for Qwen Multi Lightning workflow
+# ============================================================================
+
+# Download LoRAs
+RUN comfy model download \
+    --url https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V2.0.safetensors \
+    --relative-path models/loras \
+    --filename Qwen-Image-Lightning-8steps-V2.0.safetensors
+
+RUN comfy model download \
+    --url https://huggingface.co/spaces/lllyasviel/IC-Light/resolve/main/models/iclight_sd15_fc.safetensors \
+    --relative-path models/loras \
+    --filename iclight_sd15_fc.safetensors
+
+RUN comfy model download \
+    --url "https://huggingface.co/dx8152/Qwen-Edit-2509-Light-Migration/resolve/main/%E5%8F%82%E8%80%83%E8%89%B2%E8%B0%83.safetensors" \
+    --relative-path models/loras \
+    --filename reference_color_tone.safetensors
+
+# Download VAE
+RUN comfy model download \
+    --url https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors \
+    --relative-path models/vae \
+    --filename qwen_image_vae.safetensors
+
+# Download UNET (Diffusion Model)
+RUN comfy model download \
+    --url https://huggingface.co/aidiffuser/Qwen-Image-Edit-2509/resolve/main/Qwen-Image-Edit-2509_fp8_e4m3fn.safetensors \
+    --relative-path models/unet \
+    --filename Qwen-Image-Edit-2509_fp8_e4m3fn.safetensors
+
+# Download CLIP
+RUN comfy model download \
+    --url https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors \
+    --relative-path models/clip \
+    --filename qwen_2.5_vl_7b.safetensors
+
 # Stage 3: Final image
 FROM base AS final
 
-# Copy models from stage 2 to the final image
+# Copy models from downloader stage to the final image
 COPY --from=downloader /comfyui/models /comfyui/models
+
+# Set the default command to run when starting the container
+CMD ["/start.sh"]
