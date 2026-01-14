@@ -1,2 +1,1 @@
-# Models are baked into the container at /comfyui/models/
-# No external volume required - all paths relative to ComfyUI's default model directory
+[]
